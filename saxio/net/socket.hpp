@@ -19,13 +19,14 @@ public:
     }
 
     [[nodiscard]]
-    auto listen(int maxn) const noexcept -> saxio::Result<void>{
+    auto listen(int maxn) const noexcept -> Result<void>{
         if (::listen(fd_, maxn) < 0) {
             return std::unexpected{make_error(Error::kListenFailed)};
         }
         return saxio::Result<void>{};
     }
 
+public:
     [[nodiscard]]
     static auto create(const int domain, const int type, const int protocol)->Result<Socket>{
         auto fd = ::socket(domain, type, protocol);

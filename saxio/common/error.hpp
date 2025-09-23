@@ -21,7 +21,7 @@ namespace saxio
 
     public:
         [[nodiscard]]
-        int value() const noexcept { return error_code_; }
+        auto value() const noexcept -> int { return error_code_; }
 
         [[nodiscard]]
         auto message() const noexcept -> std::string_view{

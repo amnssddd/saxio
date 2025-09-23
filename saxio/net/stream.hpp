@@ -3,7 +3,7 @@
 #include "saxio/net/socket.hpp"
 
 namespace saxio::net::detail {
-template <typename Stream>
+template <class Stream>
 class BaseStream {
 public:
     explicit BaseStream(Socket&& inner)
@@ -11,13 +11,9 @@ public:
 
 public:
     [[nodiscard]]
-    auto fd() const noexcept -> int{
-        return inner_.fd();
-    }
+    auto fd() const noexcept -> int{ return inner_.fd(); }
 
-    void close(){
-        inner_.close();
-    }
+    void close(){ inner_.close(); }
 
 public:
     [[nodiscard]]
@@ -25,18 +21,18 @@ public:
         //Create
         auto has_socket = Socket::create(AF_INET, SOCK_STREAM, 0);
         if (!has_socket) {
-            return std::unexpected{make_error(Error::kConnectFailed)};
+            return std::unexpected{has_socket.error()};
         }
         auto socket = std::move(has_socket.value());
 
         //Bind
-        sockaddr_in addr;
-        socklen_t addrlen{};
+        sockaddr_in addr{};
+        socklen_t addrlen = 0;
         auto has_bind = socket.bind(reinterpret_cast<const sockaddr*>(&addr), addrlen);
         if (!has_bind) {
             return std::unexpected{make_error(Error::kBindFailed)};
         }
-        return Stream{std::move(socket)};  //???
+        return Stream{std::move(socket)};
     }
 
 protected:

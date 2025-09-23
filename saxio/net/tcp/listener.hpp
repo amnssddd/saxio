@@ -5,6 +5,7 @@
 
 namespace saxio::net {
 class TcpListener : public detail::BaseLinstener<TcpListener,TcpStream> {
+public:
     explicit TcpListener(detail::Socket&& inner)
         : BaseLinstener(std::move(inner)) {}
 };

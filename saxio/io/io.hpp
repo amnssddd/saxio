@@ -4,11 +4,10 @@
 namespace saxio::io::detail {
 class FD {
 public:
-    explicit FD(int fd = -1){}
+    explicit FD(int fd = -1)
+        : fd_{fd}{}
 
-    ~FD(){
-        close();
-    }
+    ~FD(){ close(); }
 
     //禁止拷贝
     FD(const FD&) = delete;
@@ -28,14 +27,10 @@ public:
     }
 public:
     [[nodiscard]]
-    int fd() const noexcept{
-        return fd_;
-    }
+    auto fd() const noexcept -> int { return fd_; }
 
     [[nodiscard]]
-    bool is_valid() const noexcept{
-        return fd_ >= 0;
-    }
+    auto is_valid() const noexcept -> bool { return fd_ >= 0; }
 
     [[nodiscard]]
     int release() noexcept{
