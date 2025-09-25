@@ -2,6 +2,7 @@
 #include <cstring>
 #include <string_view>
 #include <expected>
+#include <format>
 
 namespace saxio
 {
@@ -24,7 +25,7 @@ namespace saxio
         auto value() const noexcept -> int { return error_code_; }
 
         [[nodiscard]]
-        auto message() const noexcept -> std::string_view{
+        auto message() const noexcept -> std::string{
             switch (error_code_) {
                 case kUnknown:
                     return "Unknown error";
@@ -56,3 +57,17 @@ namespace saxio
         return Error(error_code);
     }
 }
+
+// 特化 std::formatter 以支持 Error 类型
+template <>
+struct std::formatter<saxio::Error> {
+    // 解析格式字符串（此处无需特殊处理）
+    constexpr auto parse(std::format_parse_context& ctx) {
+        return ctx.begin();
+    }
+
+    // 格式化 Error 对象
+    auto format(const saxio::Error& err, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "{}", err.message());
+    }
+};

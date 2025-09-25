@@ -21,9 +21,11 @@ public:
     }
 
 public:
+    //获取底层监听 Socket 的文件描述符
     [[nodiscard]]
     auto fd() const noexcept -> int{ return inner_.fd(); }
 
+    //静态方法，创建并绑定监听 Socket（返回 Result<TcpListener>）
     [[nodiscard]]
     static auto bind(const sockaddr* addr, socklen_t addrlen) -> Result<Listener>{
         // Create
