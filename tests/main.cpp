@@ -5,33 +5,46 @@
 #include "saxio/net.hpp"
 #include "saxio/log/logger.hpp"
 #include "saxio/common/debug.hpp"
+#include "saxio/net/socketIO.hpp"
 using namespace saxio::net;
 
 // 线程安全的客户端容器
 tbb::concurrent_hash_map<int, tbb::task_group> clients;
 
 auto process(const TcpStream &stream) {
-    char buf[1024];
+    socketIO io(stream.fd());
+    std::vector<char> buf;
+
     while(true) {
-        auto len = ::recv(stream.fd(), buf, sizeof(buf), 0);
-        if (len <= 0) {
-            if (len == 0) {
-                LOG_INFO("Connection closed: {}", stream.fd());
-            } else {
-                LOG_ERROR("Connection error: {}", strerror(errno));
+        try {
+            //读取数据（自动处理缓冲区）
+            buf = io.readAll();  // 读取失败会抛出异常
+
+            //回显数据
+            std::string_view response(buf.data(), buf.size());
+
+            // 处理空消息或仅换行符
+            if (response.empty() || (response.size() == 1 && response[0] == '\n')) {
+                LOG_DEBUG("Received empty message");
+                if (io.write("\n") <= 0) break;  // 回显换行符
+                continue;
             }
-            break;
+
+            // 安全移除换行符
+            if (!response.empty() && response.back() == '\n') {
+                response.remove_suffix(1);
+            }
+
+            LOG_INFO("Received: {}", response);
+            if (io.write(response) <= 0) break;  // 发送失败退出
         }
-
-        buf[len] = '\0';
-        std::cout << "Received: " << buf;
-
-        len = ::send(stream.fd(), buf, len, 0);
-        if (len <= 0) {
-            if (len == 0) {
-                LOG_INFO("Connection closed: {}", stream.fd());
+        catch(const std::system_error& e){
+            if (e.code().value() == 0) {  // 客户端主动关闭
+                LOG_INFO("Client closed gracefully: {}", stream.fd());
+            } else if (e.code().value() == ECONNRESET) {  // 客户端强制断开
+                LOG_WARN("Client reset connection: {}", stream.fd());
             } else {
-                LOG_ERROR("Connection error: {}", strerror(errno));
+                LOG_ERROR("IO error: {}", e.what());
             }
             break;
         }
@@ -92,11 +105,5 @@ auto main(int argc, char* argv[]) -> int {
     if (!ret) {
         LOG_ERROR("server error: {}", ret.error());
     }
-
-    // 等待所有客户端任务完成
-    for (auto& [fd, tg] : clients) {
-        tg.wait();
-    }
-
     return 0;
 }
