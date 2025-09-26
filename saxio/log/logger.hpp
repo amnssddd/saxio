@@ -4,7 +4,6 @@
 #include <mutex>
 #include <format>
 #include <ctime>
-#include <vector>
 
 namespace saxio::log {
 class Logger {

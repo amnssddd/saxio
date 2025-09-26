@@ -18,6 +18,8 @@ namespace saxio
             kSocketCreateFailed,
             kConnectFailed,
             kAcceptFailed,
+            kReadFailed,
+            kWriteFailed
         };
 
     public:
@@ -39,6 +41,10 @@ namespace saxio
                     return "Connect failed";
                 case kAcceptFailed:
                     return "Accept failed";
+                case kReadFailed:
+                    return "Read failed";
+                case kWriteFailed:
+                    return "Write failed";
                 default:
                     //将错误码转换为可读的错误信息字符串
                     return strerror(error_code_);

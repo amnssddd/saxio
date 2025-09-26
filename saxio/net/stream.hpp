@@ -1,10 +1,13 @@
 #pragma once
 
 #include "saxio/net/socket.hpp"
+#include "saxio/io/impl/impl_read.hpp"
+#include "saxio/io/impl/impl_write.hpp"
 
 namespace saxio::net::detail {
 template <class Stream>
-class BaseStream {
+class BaseStream : public io::detail::ImplRead<Stream>,
+                   public io::detail::ImplWrite<Stream>{
 public:
     explicit BaseStream(Socket&& inner)
         : inner_(std::move(inner)){}
