@@ -6,6 +6,7 @@
 #include <atomic>
 #include <memory>
 #include "saxio/net.hpp"
+#include "saxio/rpc_handle.hpp"
 #include "saxio/log/logger.hpp"
 #include "saxio/common/debug.hpp"
 #include "saxio/net/tcp/stream.hpp"
@@ -21,7 +22,7 @@ void process(TcpStream stream) {
     std::vector<char> buf(4096);
     int client_fd = stream.fd();
 
-    LOG_INFO("Start processing client: {}", client_fd);
+    LOG_INFO("Start processing RPC client: {}", client_fd);
 
     while (true) {
         // 读取数据
@@ -59,39 +60,53 @@ void process(TcpStream stream) {
             received_data.remove_suffix(1);
         }
 
-        LOG_INFO("Response from client {} is: {}", client_fd, received_data);
-
-        // 回传数据
-        auto write_result = stream.write(received_data);
-        if (!write_result) {
-            LOG_ERROR("Failed to write data back to client {}: {}",
-                     client_fd, write_result.error());
+        // 处理退出连接
+        if (received_data == "quit") {
+            LOG_INFO("Client requested quit: {}", client_fd);
             break;
+        }
+
+        // 处理RPC请求
+        LOG_INFO("Received RPC request from client {}: {}", client_fd, received_data);
+        auto result = dispatch_rpc_call(received_data);
+
+        if (result) {
+            std::string response = std::to_string(result.value());
+            // 发送成功响应
+            if (auto wr = stream.write(std::string_view(response)); !wr) {
+                LOG_ERROR("Failed to send response to client {}: {}", client_fd, wr.error());
+                break;
+            }
+            LOG_INFO("Sent response to client {}: {}", client_fd, response);
+        } else {
+            std::string_view response = "ERROR";
+            // 发送错误响应
+            if (auto wr = stream.write(response); !wr) {
+                LOG_ERROR("Failed to send error response to client {}: {}", client_fd, wr.error());
+                break;
+            }
+            LOG_INFO("Sent error response to client {}: {}", client_fd, response);
         }
     }
 
     // 清理客户端
     std::lock_guard<std::mutex> lock(clients_mutex);
     if (auto it = clients.find(client_fd); it != clients.end()) {
-        // 检查线程是否已经完成
         if (it->second->joinable()) {
-            it->second->detach();  // 分离线程，让系统自动回收资源
+            it->second->detach();
         }
         clients.erase(it);
-        LOG_INFO("Client {} cleaned up, remaining clients: {}", client_fd, clients.size());
+        LOG_INFO("RPC client {} cleaned up, remaining clients: {}", client_fd, clients.size());
     }
 }
 
 void cleanup_finished_clients() {
     std::lock_guard<std::mutex> lock(clients_mutex);
     for (auto it = clients.begin(); it != clients.end(); ) {
-        // 检查线程是否已经完成执行
         if (it->second->joinable()) {
-            // 线程还在运行，继续保留
             ++it;
         } else {
-            // 线程已经完成，可以移除
-            LOG_DEBUG("Removing finished client: {}", it->first);
+            LOG_DEBUG("Removing finished RPC client: {}", it->first);
             it = clients.erase(it);
         }
     }
@@ -101,7 +116,7 @@ auto server() -> saxio::Result<void> {
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(8080);
+    addr.sin_port = htons(8082);
 
     auto has_listener = TcpListener::bind(
         reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
@@ -110,18 +125,18 @@ auto server() -> saxio::Result<void> {
     }
 
     auto tcp_listener = std::move(has_listener.value());
-    LOG_INFO("Listening on port {}, fd is {}", ntohs(addr.sin_port), tcp_listener.fd());
+    LOG_INFO("RPC Server listening on port {}, fd is {}", ntohs(addr.sin_port), tcp_listener.fd());
 
     while (server_running) {
         auto has_stream = tcp_listener.accept(nullptr, nullptr);
         if (!has_stream) {
             LOG_ERROR("Accept failed: {}", has_stream.error());
-            continue;  // 不要因为单个accept失败就退出服务器
+            continue;
         }
 
         TcpStream stream(std::move(has_stream.value()));
         int client_fd = stream.fd();
-        LOG_INFO("Connection accepted: {}", client_fd);
+        LOG_INFO("RPC Connection accepted: {}", client_fd);
 
         // 定期清理已完成的客户端
         cleanup_finished_clients();
@@ -129,13 +144,12 @@ auto server() -> saxio::Result<void> {
         // 启动新线程处理连接
         std::lock_guard<std::mutex> lock(clients_mutex);
 
-        // 使用智能指针管理线程
         auto client_thread = std::make_shared<std::thread>([stream = std::move(stream)]() mutable {
             process(std::move(stream));
         });
 
         clients.emplace(client_fd, client_thread);
-        LOG_INFO("Client {} thread started, total clients: {}", client_fd, clients.size());
+        LOG_INFO("RPC client {} thread started, total clients: {}", client_fd, clients.size());
     }
 
     // 服务器关闭时等待所有客户端线程结束
@@ -152,13 +166,14 @@ auto server() -> saxio::Result<void> {
 
 auto main(int argc, char* argv[]) -> int {
     try {
+        LOG_INFO("Starting RPC Server...");
         auto ret = server();
         if (!ret) {
-            LOG_ERROR("Server error: {}", ret.error());
+            LOG_ERROR("RPC Server error: {}", ret.error());
             return -1;
         }
     } catch (const std::exception& e) {
-        LOG_ERROR("Server exception: {}", e.what());
+        LOG_ERROR("RPC Server exception: {}", e.what());
         return -1;
     }
 

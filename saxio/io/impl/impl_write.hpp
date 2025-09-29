@@ -16,10 +16,10 @@ struct ImplWrite {
         return std::unexpected{make_error(Error::kWriteFailed)};
     }
 
-    //提供用于接收string_view数据的重载
-    auto write(std::string_view str) noexcept -> Result<std::size_t>{
-        return this->write(std::span<const char>{str.data(), str.size()});
-    }
+    // //提供用于接收string_view数据的重载
+    // auto write(std::string_view str) noexcept -> Result<std::size_t>{
+    //     return this->write(std::span<const char>{str.data(), str.size()});
+    // }
 
     //提供一个专门处理字符串字面量的 write() 重载
     [[nodiscard]]

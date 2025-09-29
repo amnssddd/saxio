@@ -1,6 +1,5 @@
 #pragma once
 #include <cstring>
-#include <string_view>
 #include <expected>
 #include <format>
 
@@ -19,7 +18,11 @@ namespace saxio
             kConnectFailed,
             kAcceptFailed,
             kReadFailed,
-            kWriteFailed
+            kWriteFailed,
+            kRPCOutOfData,   //rpc传输输入参数不足
+            kRPCParameterParsingFailed,  //参数解析错误
+            kRPCFindFunctionFailed,      //找不到函数
+            kClientConnectFailed,
         };
 
     public:
@@ -45,6 +48,14 @@ namespace saxio
                     return "Read failed";
                 case kWriteFailed:
                     return "Write failed";
+                case kRPCOutOfData:
+                    return "Insufficient input parameters";
+                case kRPCParameterParsingFailed:
+                    return "Parameter parsing failed";
+                case kRPCFindFunctionFailed:
+                    return "Find function failed";
+                case kClientConnectFailed:
+                    return "Client connect failed";
                 default:
                     //将错误码转换为可读的错误信息字符串
                     return strerror(error_code_);
