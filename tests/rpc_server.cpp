@@ -1,3 +1,8 @@
+#include "saxio/net.hpp"
+#include "saxio/net/rpc/rpc_handle.hpp"
+#include "saxio/log/logger.hpp"
+#include "saxio/common/debug.hpp"
+#include "saxio/net/tcp/stream.hpp"
 #include <iostream>
 #include <vector>
 #include <thread>
@@ -5,11 +10,7 @@
 #include <unordered_map>
 #include <atomic>
 #include <memory>
-#include "saxio/net.hpp"
-#include "saxio/rpc_handle.hpp"
-#include "saxio/log/logger.hpp"
-#include "saxio/common/debug.hpp"
-#include "saxio/net/tcp/stream.hpp"
+
 
 using namespace saxio::net;
 
@@ -68,7 +69,7 @@ void process(TcpStream stream) {
 
         // 处理RPC请求
         LOG_INFO("Received RPC request from client {}: {}", client_fd, received_data);
-        auto result = dispatch_rpc_call(received_data);
+        auto result = saxio::rpc::dispatch_rpc_call(received_data);
 
         if (result) {
             std::string response = std::to_string(result.value());

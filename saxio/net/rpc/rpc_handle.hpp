@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
 #include "saxio/common/error.hpp"
+#include <vector>
 
-using namespace saxio;
+namespace saxio::rpc{
 
 //RPC函数实现
 inline auto handle_add(double a, double b) -> double{ return a + b; }
@@ -12,7 +12,7 @@ inline auto handle_mul(double a, double b) -> double{ return a * b; }
 inline auto handle_div(double a, double b) -> double{ return a / b; }
 
 //RPC调用分发器
-auto dispatch_rpc_call(std::string_view request) -> Result<int>{
+inline auto dispatch_rpc_call(std::string_view request) -> Result<int>{
     std::vector<std::string_view> parts;
     size_t start = 0;
 
@@ -54,4 +54,6 @@ auto dispatch_rpc_call(std::string_view request) -> Result<int>{
 
     //未定义的函数调用
     return std::unexpected{make_error(Error::kRPCFindFunctionFailed)};
+}
+
 }

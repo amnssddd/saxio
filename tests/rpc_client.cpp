@@ -1,11 +1,10 @@
+#include "saxio/net.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
 #include <thread>
 #include <sstream>
 #include <algorithm>
-
-#include "saxio/net.hpp"
 
 using namespace saxio::net;
 

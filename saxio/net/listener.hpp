@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include "saxio/net/socket.hpp"
 
 namespace saxio::net::detail {
@@ -34,6 +35,14 @@ public:
             return std::unexpected{has_socket.error()};
         }
         auto socket = std::move(has_socket.value());
+
+        //设置 SO_REUSERADDR 选项（避免端口占用）
+        int optval = 1;
+        if (setsockopt(socket.fd(), SOL_SOCKET, SO_REUSEADDR,
+            &optval, sizeof(optval)) < 0) {
+            std::cerr << "setsockopt(SO_REUSEADDR) failed" << std::endl;
+            return std::unexpected{make_error(Error::kBindFailed)};
+        }
 
         // Bind
         auto has_bind = socket.bind(addr, addrlen);

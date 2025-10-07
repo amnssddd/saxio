@@ -6,7 +6,6 @@
 #include <atomic>
 #include <memory>
 #include "saxio/net.hpp"
-#include "saxio/log/logger.hpp"
 #include "saxio/common/debug.hpp"
 #include "saxio/net/tcp/stream.hpp"
 
