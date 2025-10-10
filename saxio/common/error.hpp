@@ -23,12 +23,16 @@ namespace saxio
             kRPCParameterParsingFailed,  //参数解析错误
             kRPCFindFunctionFailed,      //找不到函数
             kClientConnectFailed,
+            kSetNonBlockFailed,   //设置非阻塞I/O错误
+            kSendResponseFailed,  //服务端向客户端发送响应失败
         };
 
     public:
+        //错误码
         [[nodiscard]]
         auto value() const noexcept -> int { return error_code_; }
 
+        //错误信息
         [[nodiscard]]
         auto message() const noexcept -> std::string{
             switch (error_code_) {
@@ -56,6 +60,10 @@ namespace saxio
                     return "Find function failed";
                 case kClientConnectFailed:
                     return "Client connect failed";
+                case kSetNonBlockFailed:
+                    return "Set non-block failed";
+                case kSendResponseFailed:
+                    return "Send response failed";
                 default:
                     //将错误码转换为可读的错误信息字符串
                     return strerror(error_code_);

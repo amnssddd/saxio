@@ -54,7 +54,7 @@ public:
         std::cout << message << std::endl;
     }
 
-    // 具体日志级别方法
+    // 具体日志级别方法（参数包展开）
     template <typename... Args>
     void debug(std::format_string<Args...> fmt, Args&&... args) {
         log(Level::DEBUG, fmt, std::forward<Args>(args)...);
